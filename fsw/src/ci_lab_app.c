@@ -1,7 +1,7 @@
 /************************************************************************
- * NASA Docket No. GSC-18,719-1, and identified as “core Flight System: Bootes”
+ * NASA Docket No. GSC-19,200-1, and identified as "cFS Draco"
  *
- * Copyright (c) 2020 United States Government as represented by the
+ * Copyright (c) 2023 United States Government as represented by the
  * Administrator of the National Aeronautics and Space Administration.
  * All Rights Reserved.
  *
@@ -65,7 +65,7 @@ void CI_LAB_AppMain(void)
         CFE_ES_PerfLogExit(CI_LAB_MAIN_TASK_PERF_ID);
 
         /* Receive SB buffer, configurable timeout */
-        status = CFE_SB_ReceiveBuffer(&SBBufPtr, CI_LAB_Global.CommandPipe, CI_LAB_SB_RECEIVE_TIMEOUT);
+        status = CFE_SB_ReceiveBuffer(&SBBufPtr, CI_LAB_Global.CommandPipe, CI_LAB_PLATFORM_SB_RECEIVE_TIMEOUT);
 
         CFE_ES_PerfLogEntry(CI_LAB_MAIN_TASK_PERF_ID);
 
@@ -104,9 +104,11 @@ void CI_LAB_TaskInit(void)
 {
     int32  status;
     uint16 DefaultListenPort;
-    char VersionString[CI_LAB_CFG_MAX_VERSION_STR_LEN];
+    char   VersionString[CI_LAB_CFG_MAX_VERSION_STR_LEN];
 
     memset(&CI_LAB_Global, 0, sizeof(CI_LAB_Global));
+
+    CI_LAB_Global.AllowPassthrough = true;
 
     status = CFE_EVS_Register(NULL, 0, CFE_EVS_EventFilter_BINARY);
     if (status != CFE_SUCCESS)
@@ -114,7 +116,7 @@ void CI_LAB_TaskInit(void)
         CFE_ES_WriteToSysLog("CI_LAB: Error registering for Event Services, RC = 0x%08X\n", (unsigned int)status);
     }
 
-    status = CFE_SB_CreatePipe(&CI_LAB_Global.CommandPipe, CI_LAB_PIPE_DEPTH, "CI_LAB_CMD_PIPE");
+    status = CFE_SB_CreatePipe(&CI_LAB_Global.CommandPipe, CI_LAB_PLATFORM_PIPE_DEPTH, "CI_LAB_CMD_PIPE");
     if (status == CFE_SUCCESS)
     {
         status = CFE_SB_Subscribe(CFE_SB_ValueToMsgId(CI_LAB_CMD_MID), CI_LAB_Global.CommandPipe);
@@ -153,7 +155,7 @@ void CI_LAB_TaskInit(void)
     else
     {
         OS_SocketAddrInit(&CI_LAB_Global.SocketAddress, OS_SocketDomain_INET);
-        DefaultListenPort = CI_LAB_BASE_UDP_PORT + CFE_PSP_GetProcessorId() - 1;
+        DefaultListenPort = CI_LAB_MISSION_BASE_UDP_PORT + CFE_PSP_GetProcessorId() - 1;
         OS_SocketAddrSetPort(&CI_LAB_Global.SocketAddress, DefaultListenPort);
 
         status = OS_SocketBind(CI_LAB_Global.SocketID, &CI_LAB_Global.SocketAddress);
@@ -180,11 +182,10 @@ void CI_LAB_TaskInit(void)
     CFE_MSG_Init(CFE_MSG_PTR(CI_LAB_Global.HkTlm.TelemetryHeader), CFE_SB_ValueToMsgId(CI_LAB_HK_TLM_MID),
                  sizeof(CI_LAB_Global.HkTlm));
 
-    CFE_Config_GetVersionString(VersionString, CI_LAB_CFG_MAX_VERSION_STR_LEN, "CI Lab App",
-        CI_LAB_VERSION, CI_LAB_BUILD_CODENAME, CI_LAB_LAST_OFFICIAL);
+    CFE_Config_GetVersionString(VersionString, CI_LAB_CFG_MAX_VERSION_STR_LEN, "CI Lab App", CI_LAB_VERSION,
+                                CI_LAB_BUILD_CODENAME, CI_LAB_LAST_OFFICIAL);
 
-    CFE_EVS_SendEvent(CI_LAB_INIT_INF_EID, CFE_EVS_EventType_INFORMATION, "CI Lab Initialized.%s",
-                      VersionString);
+    CFE_EVS_SendEvent(CI_LAB_INIT_INF_EID, CFE_EVS_EventType_INFORMATION, "CI Lab Initialized.%s", VersionString);
 }
 
 /* * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * **/
@@ -218,7 +219,7 @@ void CI_LAB_ReadUpLink(void)
     CFE_Status_t     CfeStatus;
     CFE_SB_Buffer_t *SBBufPtr;
 
-    for (i = 0; i <= CI_LAB_MAX_INGEST_PKTS; i++)
+    for (i = 0; i <= CI_LAB_PLATFORM_MAX_INGEST_PKTS; i++)
     {
         if (CI_LAB_Global.NetBufPtr == NULL)
         {
@@ -231,7 +232,7 @@ void CI_LAB_ReadUpLink(void)
         }
 
         OsStatus = OS_SocketRecvFrom(CI_LAB_Global.SocketID, CI_LAB_Global.NetBufPtr, CI_LAB_Global.NetBufSize,
-                                     &CI_LAB_Global.SocketAddress, CI_LAB_UPLINK_RECEIVE_TIMEOUT);
+                                     &CI_LAB_Global.SocketAddress, CI_LAB_PLATFORM_UPLINK_RECEIVE_TIMEOUT);
         if (OsStatus > 0)
         {
             CFE_ES_PerfLogEntry(CI_LAB_SOCKET_RCV_PERF_ID);
