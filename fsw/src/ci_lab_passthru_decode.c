@@ -30,6 +30,7 @@
 #include "ci_lab_perfids.h"
 #include "ci_lab_msgids.h"
 #include "ci_lab_decode.h"
+#include "ci_lab_bridge_ingest.h"
 
 /*
  * ---------------------------------------
@@ -78,6 +79,14 @@ CFE_Status_t CI_LAB_DecodeInputMessage(void *SourceBuffer, size_t SourceSize, CF
     CFE_SB_Buffer_t *MsgBufPtr;
     CFE_MSG_Size_t   MsgSize;
     CFE_Status_t     Status;
+
+    /* Rust bridge: CCSDS primary + payload + CRC-16 BE → SB MsgId BRIDGE_SB_MSGID_RAW_VALUE */
+    if (CI_LAB_IsBridgeWireFormat(SourceBuffer, SourceSize))
+    {
+        Status = CI_LAB_WrapBridgeWireInPlace(SourceBuffer, SourceSize);
+        *DestBufferOut = SourceBuffer;
+        return Status;
+    }
 
     if (SourceSize < sizeof(CFE_MSG_CommandHeader_t))
     {

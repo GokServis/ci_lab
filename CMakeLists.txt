@@ -3,6 +3,7 @@ project(CFS_CI_LAB C)
 set(APP_SRC_FILES
     fsw/src/ci_lab_app.c
     fsw/src/ci_lab_cmds.c
+    fsw/src/ci_lab_bridge_ingest.c
 )
 
 if (CFE_EDS_ENABLED)
@@ -21,4 +22,4 @@ endif()
 # Create the app module
 add_cfe_app(ci_lab ${APP_SRC_FILES})
 
-target_include_directories(ci_lab PUBLIC fsw/inc)
+target_include_directories(ci_lab PUBLIC fsw/inc "${CMAKE_CURRENT_SOURCE_DIR}/../bridge_reader/fsw/inc")
