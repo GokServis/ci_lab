@@ -31,7 +31,8 @@ static size_t bridge_payload_len_from_w2(uint16_t w2)
 static bool bridge_wire_apid_is_allowed(uint16_t apid)
 {
     return (apid == BRIDGE_WIRE_CCSDS_APID_HEARTBEAT) || (apid == BRIDGE_WIRE_CCSDS_APID_PING) ||
-           (apid == BRIDGE_WIRE_CCSDS_APID_TO_LAB_ENABLE_OUTPUT);
+           (apid == BRIDGE_WIRE_CCSDS_APID_TO_LAB_ENABLE_OUTPUT) ||
+           (apid == BRIDGE_WIRE_CCSDS_APID_TO_LAB_DISABLE_OUTPUT);
 }
 
 static uint16_t bridge_wire_apid_to_sb_msgid(uint16_t apid)
@@ -106,6 +107,66 @@ typedef struct
         char dest_IP[16];
     } Payload;
 } CI_LAB_ToLabEnableOutputCmd_t;
+
+/** Layout matches TO_LAB_DisableOutputCmd_t (command header only). */
+typedef struct
+{
+    CFE_MSG_CommandHeader_t CommandHeader;
+} CI_LAB_ToLabDisableOutputCmd_t;
+
+CFE_Status_t CI_LAB_DecodeBridgeWireToToLabDisableOutput(const void *source_buffer, size_t source_size,
+                                                        CFE_SB_Buffer_t **dest_out)
+{
+    const uint8_t *p = source_buffer;
+    CFE_SB_Buffer_t *Buf;
+    CI_LAB_ToLabDisableOutputCmd_t *cmd;
+    uint16_t w0;
+    uint16_t w2;
+
+    *dest_out = NULL;
+
+    if (!CI_LAB_IsBridgeWireFormat(source_buffer, source_size))
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+
+    w0 = ((uint16_t)p[0] << 8) | p[1];
+    w2 = ((uint16_t)p[4] << 8) | p[5];
+    if ((w0 & 0x07FFu) != BRIDGE_WIRE_CCSDS_APID_TO_LAB_DISABLE_OUTPUT)
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+
+    /* Zero-byte payload => CCSDS length field 0xFFFF (matches rust-bridge semantics). */
+    if (w2 != 0xFFFFu)
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+
+    Buf = CFE_SB_AllocateMessageBuffer(sizeof(CI_LAB_ToLabDisableOutputCmd_t));
+    if (Buf == NULL)
+    {
+        return CFE_SB_BUF_ALOC_ERR;
+    }
+    cmd = (CI_LAB_ToLabDisableOutputCmd_t *)&Buf->Msg;
+    memset(cmd, 0, sizeof(*cmd));
+
+    if (CFE_MSG_Init(CFE_MSG_PTR(cmd->CommandHeader), CFE_SB_ValueToMsgId(CI_LAB_BRIDGE_TO_LAB_CMD_MIDVAL),
+                     sizeof(CI_LAB_ToLabDisableOutputCmd_t)) != CFE_SUCCESS)
+    {
+        CFE_SB_ReleaseMessageBuffer(Buf);
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+
+    if (CFE_MSG_SetFcnCode(CFE_MSG_PTR(cmd->CommandHeader), TO_LAB_OUTPUT_DISABLE_CC) != CFE_SUCCESS)
+    {
+        CFE_SB_ReleaseMessageBuffer(Buf);
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+
+    *dest_out = Buf;
+    return CFE_SUCCESS;
+}
 
 CFE_Status_t CI_LAB_DecodeBridgeWireToToLabEnableOutput(const void *source_buffer, size_t source_size,
                                                         CFE_SB_Buffer_t **dest_out)
@@ -193,6 +254,10 @@ CFE_Status_t CI_LAB_WrapBridgeWireInPlace(void *source_buffer, size_t source_siz
         return CFE_STATUS_WRONG_MSG_LENGTH;
     }
     if (apid == BRIDGE_WIRE_CCSDS_APID_TO_LAB_ENABLE_OUTPUT)
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+    if (apid == BRIDGE_WIRE_CCSDS_APID_TO_LAB_DISABLE_OUTPUT)
     {
         return CFE_STATUS_WRONG_MSG_LENGTH;
     }

@@ -243,6 +243,11 @@ CFE_Status_t CI_LAB_DecodeInputMessage(void *SourceBuffer, size_t SourceSize, CF
             ResultStatus = CI_LAB_DecodeBridgeWireToToLabEnableOutput(SourceBuffer, SourceSize, DestBufferOut);
             return ResultStatus;
         }
+        if (CI_LAB_BridgeWireGetApid(SourceBuffer, SourceSize) == BRIDGE_WIRE_CCSDS_APID_TO_LAB_DISABLE_OUTPUT)
+        {
+            ResultStatus = CI_LAB_DecodeBridgeWireToToLabDisableOutput(SourceBuffer, SourceSize, DestBufferOut);
+            return ResultStatus;
+        }
 
         ResultStatus = CI_LAB_WrapBridgeWireInPlace(SourceBuffer, SourceSize);
         *DestBufferOut = SourceBuffer;

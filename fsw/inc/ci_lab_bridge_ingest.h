@@ -29,4 +29,11 @@ CFE_Status_t CI_LAB_WrapBridgeWireInPlace(void *source_buffer, size_t source_siz
 CFE_Status_t CI_LAB_DecodeBridgeWireToToLabEnableOutput(const void *source_buffer, size_t source_size,
                                                         CFE_SB_Buffer_t **dest_out);
 
+/**
+ * Rust bridge APID 0x009: CCSDS TC + zero-byte payload + CRC → TO_LAB_DisableOutputCmd on SB.
+ * Allocates a new SB buffer; caller must transmit and not use WrapBridgeWireInPlace for this APID.
+ */
+CFE_Status_t CI_LAB_DecodeBridgeWireToToLabDisableOutput(const void *source_buffer, size_t source_size,
+                                                        CFE_SB_Buffer_t **dest_out);
+
 #endif /* CI_LAB_BRIDGE_INGEST_H */
