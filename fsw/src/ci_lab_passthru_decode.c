@@ -83,6 +83,10 @@ CFE_Status_t CI_LAB_DecodeInputMessage(void *SourceBuffer, size_t SourceSize, CF
     /* Rust bridge: CCSDS primary + payload + CRC-16 BE → SB MsgId from wire APID */
     if (CI_LAB_IsBridgeWireFormat(SourceBuffer, SourceSize))
     {
+        if (CI_LAB_BridgeWireGetApid(SourceBuffer, SourceSize) == BRIDGE_WIRE_CCSDS_APID_TO_LAB_ENABLE_OUTPUT)
+        {
+            return CI_LAB_DecodeBridgeWireToToLabEnableOutput(SourceBuffer, SourceSize, DestBufferOut);
+        }
         Status = CI_LAB_WrapBridgeWireInPlace(SourceBuffer, SourceSize);
         *DestBufferOut = SourceBuffer;
         return Status;
