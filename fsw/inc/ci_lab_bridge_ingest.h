@@ -1,6 +1,7 @@
 /************************************************************************
  * CI_LAB: detect Rust bridge wire format (CCSDS primary + payload + CRC-16 BE)
- * and wrap it in a cFE Software Bus message for MsgId BRIDGE_SB_MSGID_RAW_VALUE.
+ * and wrap it in a cFE Software Bus message. SB MsgId is chosen from the wire APID
+ * (see bridge_reader_mission_ids.h).
  ************************************************************************/
 #ifndef CI_LAB_BRIDGE_INGEST_H
 #define CI_LAB_BRIDGE_INGEST_H

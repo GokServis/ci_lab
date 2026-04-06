@@ -235,7 +235,7 @@ CFE_Status_t CI_LAB_DecodeInputMessage(void *SourceBuffer, size_t SourceSize, CF
     EdsLib_SizeInfo_t                     MaxSize;
     EdsLib_SizeInfo_t                     ProcessedSize;
 
-    /* Rust bridge wire format (same as non-EDS passthrough path) */
+    /* Rust bridge wire format — SB MsgId from APID (same as passthrough path) */
     if (CI_LAB_IsBridgeWireFormat(SourceBuffer, SourceSize))
     {
         ResultStatus = CI_LAB_WrapBridgeWireInPlace(SourceBuffer, SourceSize);
