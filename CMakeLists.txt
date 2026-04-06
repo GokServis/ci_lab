@@ -22,4 +22,5 @@ endif()
 # Create the app module
 add_cfe_app(ci_lab ${APP_SRC_FILES})
 
-target_include_directories(ci_lab PUBLIC fsw/inc "${CMAKE_CURRENT_SOURCE_DIR}/../bridge_reader/fsw/inc")
+target_include_directories(ci_lab PUBLIC fsw/inc "${CMAKE_CURRENT_SOURCE_DIR}/../bridge_reader/fsw/inc"
+  "${CMAKE_CURRENT_SOURCE_DIR}/../to_lab/fsw/inc")

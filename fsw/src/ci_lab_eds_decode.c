@@ -238,6 +238,12 @@ CFE_Status_t CI_LAB_DecodeInputMessage(void *SourceBuffer, size_t SourceSize, CF
     /* Rust bridge wire format — SB MsgId from APID (same as passthrough path) */
     if (CI_LAB_IsBridgeWireFormat(SourceBuffer, SourceSize))
     {
+        if (CI_LAB_BridgeWireGetApid(SourceBuffer, SourceSize) == BRIDGE_WIRE_CCSDS_APID_TO_LAB_ENABLE_OUTPUT)
+        {
+            ResultStatus = CI_LAB_DecodeBridgeWireToToLabEnableOutput(SourceBuffer, SourceSize, DestBufferOut);
+            return ResultStatus;
+        }
+
         ResultStatus = CI_LAB_WrapBridgeWireInPlace(SourceBuffer, SourceSize);
         *DestBufferOut = SourceBuffer;
         return ResultStatus;
