@@ -91,6 +91,14 @@ CFE_Status_t CI_LAB_DecodeInputMessage(void *SourceBuffer, size_t SourceSize, CF
         {
             return CI_LAB_DecodeBridgeWireToToLabDisableOutput(SourceBuffer, SourceSize, DestBufferOut);
         }
+        if (CI_LAB_BridgeWireGetApid(SourceBuffer, SourceSize) == BRIDGE_WIRE_CCSDS_APID_CFE_TBL_LOAD_FILE)
+        {
+            return CI_LAB_DecodeBridgeWireToCfeTblLoadFile(SourceBuffer, SourceSize, DestBufferOut);
+        }
+        if (CI_LAB_BridgeWireGetApid(SourceBuffer, SourceSize) == BRIDGE_WIRE_CCSDS_APID_CFE_TBL_ACTIVATE)
+        {
+            return CI_LAB_DecodeBridgeWireToCfeTblActivate(SourceBuffer, SourceSize, DestBufferOut);
+        }
         Status = CI_LAB_WrapBridgeWireInPlace(SourceBuffer, SourceSize);
         *DestBufferOut = SourceBuffer;
         return Status;

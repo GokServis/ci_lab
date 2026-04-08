@@ -8,6 +8,9 @@
 
 #include "ci_lab_bridge_ingest.h"
 #include "to_lab_fcncodes.h"
+#include "cfe_tbl_fcncodes.h"
+#include "cfe_tbl_msgids.h"
+#include "cfe_tbl_msgstruct.h"
 
 /*
  * Must match TO_LAB_CMD_MID from TO_LAB mission topic ID 0x80:
@@ -32,7 +35,9 @@ static bool bridge_wire_apid_is_allowed(uint16_t apid)
 {
     return (apid == BRIDGE_WIRE_CCSDS_APID_HEARTBEAT) || (apid == BRIDGE_WIRE_CCSDS_APID_PING) ||
            (apid == BRIDGE_WIRE_CCSDS_APID_TO_LAB_ENABLE_OUTPUT) ||
-           (apid == BRIDGE_WIRE_CCSDS_APID_TO_LAB_DISABLE_OUTPUT);
+           (apid == BRIDGE_WIRE_CCSDS_APID_TO_LAB_DISABLE_OUTPUT) ||
+           (apid == BRIDGE_WIRE_CCSDS_APID_CFE_TBL_LOAD_FILE) ||
+           (apid == BRIDGE_WIRE_CCSDS_APID_CFE_TBL_ACTIVATE);
 }
 
 static uint16_t bridge_wire_apid_to_sb_msgid(uint16_t apid)
@@ -113,6 +118,122 @@ typedef struct
 {
     CFE_MSG_CommandHeader_t CommandHeader;
 } CI_LAB_ToLabDisableOutputCmd_t;
+
+CFE_Status_t CI_LAB_DecodeBridgeWireToCfeTblLoadFile(const void *source_buffer, size_t source_size,
+                                                     CFE_SB_Buffer_t **dest_out)
+{
+    const uint8_t *p = source_buffer;
+    CFE_SB_Buffer_t *Buf;
+    CFE_TBL_LoadCmd_t *cmd;
+    uint16_t w0;
+    uint16_t w2;
+    size_t payload_len;
+
+    *dest_out = NULL;
+
+    if (!CI_LAB_IsBridgeWireFormat(source_buffer, source_size))
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+
+    w0 = ((uint16_t)p[0] << 8) | p[1];
+    w2 = ((uint16_t)p[4] << 8) | p[5];
+    if ((w0 & 0x07FFu) != BRIDGE_WIRE_CCSDS_APID_CFE_TBL_LOAD_FILE)
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+    if (w2 == 0xFFFFu)
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+    payload_len = (size_t)w2 + 1u;
+    if (payload_len != sizeof(cmd->Payload.LoadFilename))
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+
+    Buf = CFE_SB_AllocateMessageBuffer(sizeof(CFE_TBL_LoadCmd_t));
+    if (Buf == NULL)
+    {
+        return CFE_SB_BUF_ALOC_ERR;
+    }
+    cmd = (CFE_TBL_LoadCmd_t *)&Buf->Msg;
+    memset(cmd, 0, sizeof(*cmd));
+
+    if (CFE_MSG_Init(CFE_MSG_PTR(cmd->CommandHeader), CFE_SB_ValueToMsgId(CFE_TBL_CMD_MID),
+                     sizeof(CFE_TBL_LoadCmd_t)) != CFE_SUCCESS)
+    {
+        CFE_SB_ReleaseMessageBuffer(Buf);
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+    if (CFE_MSG_SetFcnCode(CFE_MSG_PTR(cmd->CommandHeader), CFE_TBL_LOAD_CC) != CFE_SUCCESS)
+    {
+        CFE_SB_ReleaseMessageBuffer(Buf);
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+
+    memcpy(cmd->Payload.LoadFilename, &p[6], payload_len);
+    *dest_out = Buf;
+    return CFE_SUCCESS;
+}
+
+CFE_Status_t CI_LAB_DecodeBridgeWireToCfeTblActivate(const void *source_buffer, size_t source_size,
+                                                     CFE_SB_Buffer_t **dest_out)
+{
+    const uint8_t *p = source_buffer;
+    CFE_SB_Buffer_t *Buf;
+    CFE_TBL_ActivateCmd_t *cmd;
+    uint16_t w0;
+    uint16_t w2;
+    size_t payload_len;
+
+    *dest_out = NULL;
+
+    if (!CI_LAB_IsBridgeWireFormat(source_buffer, source_size))
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+
+    w0 = ((uint16_t)p[0] << 8) | p[1];
+    w2 = ((uint16_t)p[4] << 8) | p[5];
+    if ((w0 & 0x07FFu) != BRIDGE_WIRE_CCSDS_APID_CFE_TBL_ACTIVATE)
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+    if (w2 == 0xFFFFu)
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+    payload_len = (size_t)w2 + 1u;
+    if (payload_len != sizeof(cmd->Payload.TableName))
+    {
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+
+    Buf = CFE_SB_AllocateMessageBuffer(sizeof(CFE_TBL_ActivateCmd_t));
+    if (Buf == NULL)
+    {
+        return CFE_SB_BUF_ALOC_ERR;
+    }
+    cmd = (CFE_TBL_ActivateCmd_t *)&Buf->Msg;
+    memset(cmd, 0, sizeof(*cmd));
+
+    if (CFE_MSG_Init(CFE_MSG_PTR(cmd->CommandHeader), CFE_SB_ValueToMsgId(CFE_TBL_CMD_MID),
+                     sizeof(CFE_TBL_ActivateCmd_t)) != CFE_SUCCESS)
+    {
+        CFE_SB_ReleaseMessageBuffer(Buf);
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+    if (CFE_MSG_SetFcnCode(CFE_MSG_PTR(cmd->CommandHeader), CFE_TBL_ACTIVATE_CC) != CFE_SUCCESS)
+    {
+        CFE_SB_ReleaseMessageBuffer(Buf);
+        return CFE_STATUS_WRONG_MSG_LENGTH;
+    }
+
+    memcpy(cmd->Payload.TableName, &p[6], payload_len);
+    *dest_out = Buf;
+    return CFE_SUCCESS;
+}
 
 CFE_Status_t CI_LAB_DecodeBridgeWireToToLabDisableOutput(const void *source_buffer, size_t source_size,
                                                         CFE_SB_Buffer_t **dest_out)

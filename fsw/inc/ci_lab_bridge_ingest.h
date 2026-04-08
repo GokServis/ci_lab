@@ -36,4 +36,18 @@ CFE_Status_t CI_LAB_DecodeBridgeWireToToLabEnableOutput(const void *source_buffe
 CFE_Status_t CI_LAB_DecodeBridgeWireToToLabDisableOutput(const void *source_buffer, size_t source_size,
                                                         CFE_SB_Buffer_t **dest_out);
 
+/**
+ * Rust bridge APID 0x00A: CCSDS TC + 64-byte NUL-padded filename payload + CRC → CFE_TBL_LoadCmd on SB.
+ * Allocates a new SB buffer; caller must transmit.
+ */
+CFE_Status_t CI_LAB_DecodeBridgeWireToCfeTblLoadFile(const void *source_buffer, size_t source_size,
+                                                     CFE_SB_Buffer_t **dest_out);
+
+/**
+ * Rust bridge APID 0x00B: CCSDS TC + 40-byte NUL-padded full table name payload + CRC → CFE_TBL_ActivateCmd on SB.
+ * Allocates a new SB buffer; caller must transmit.
+ */
+CFE_Status_t CI_LAB_DecodeBridgeWireToCfeTblActivate(const void *source_buffer, size_t source_size,
+                                                     CFE_SB_Buffer_t **dest_out);
+
 #endif /* CI_LAB_BRIDGE_INGEST_H */
